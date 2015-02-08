@@ -79,7 +79,7 @@
 #include "logic/auth/flows/AuthenticateTask.h"
 #include "logic/auth/flows/RefreshTask.h"
 
-#include "logic/updater/DownloadUpdateTask.h"
+#include "logic/updater/DownloadTask.h"
 
 #include "logic/news/NewsChecker.h"
 
@@ -568,7 +568,7 @@ void MainWindow::updateNewsLabel()
 	}
 }
 
-void MainWindow::updateAvailable(QString repo, QString versionName, int versionId)
+void MainWindow::updateAvailable(GoUpdate::Status status)
 {
 	UpdateDialog dlg;
 	UpdateAction action = (UpdateAction)dlg.exec();
@@ -578,10 +578,10 @@ void MainWindow::updateAvailable(QString repo, QString versionName, int versionI
 		qDebug() << "Update will be installed later.";
 		break;
 	case UPDATE_NOW:
-		downloadUpdates(repo, versionId);
+		downloadUpdates(status);
 		break;
 	case UPDATE_ONEXIT:
-		downloadUpdates(repo, versionId, true);
+		downloadUpdates(status, true);
 		break;
 	}
 }
@@ -632,7 +632,7 @@ void MainWindow::notificationsChanged()
 	MMC->settings()->set("ShownNotifications", intListToString(shownNotifications));
 }
 
-void MainWindow::downloadUpdates(QString repo, int versionId, bool installOnExit)
+void MainWindow::downloadUpdates(GoUpdate::Status status, bool installOnExit)
 {
 	qDebug() << "Downloading updates.";
 	// TODO: If the user chooses to update on exit, we should download updates in the
@@ -640,7 +640,9 @@ void MainWindow::downloadUpdates(QString repo, int versionId, bool installOnExit
 	// Doing so is a bit complicated, because we'd have to make sure it finished downloading
 	// before actually exiting MultiMC.
 	ProgressDialog updateDlg(this);
-	DownloadUpdateTask updateTask(MMC->root(), repo, versionId, &updateDlg);
+	status.rootPath = MMC->rootPath;
+
+	GoUpdate::DownloadTask updateTask(status, &updateDlg);
 	// If the task succeeds, install the updates.
 	if (updateDlg.exec(&updateTask))
 	{
@@ -1259,6 +1261,7 @@ void MainWindow::launchInstance(InstancePtr instance, AuthSessionPtr session)
 	console = new ConsoleWindow(proc);
 	connect(console, SIGNAL(isClosing()), this, SLOT(instanceEnded()));
 
+	proc->setHeader("MultiMC version: " + BuildConfig.printableVersionString() + "\n\n");
 	proc->arm();
 	proc->launch();
 }

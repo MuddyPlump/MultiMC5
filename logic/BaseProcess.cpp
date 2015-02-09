@@ -1,4 +1,4 @@
-#include "logic/BaseProcess.h"
+#include "BaseProcess.h"
 #include <QDebug>
 #include <QDir>
 #include <QEventLoop>

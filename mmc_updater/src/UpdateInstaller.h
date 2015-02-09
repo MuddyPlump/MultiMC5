@@ -17,58 +17,42 @@ class UpdateObserver;
   */
 class UpdateInstaller
 {
-	public:
-		enum Mode
-		{
-			Setup,
-			Main
-		};
+public:
+	void setInstallDir(const std::string& path);
+	void setPackageDir(const std::string& path);
+	void setBackupDir(const std::string& path);
+	void setScript(UpdateScript* script);
+	void setWaitPid(PLATFORM_PID pid);
+	void setDryRun(bool dryRun);
+	void setFinishCmd(const std::string& cmd);
+	void setFinishDir(const std::string& dir);
 
-		void setInstallDir(const std::string& path);
-		void setPackageDir(const std::string& path);
-		void setBackupDir(const std::string& path);
-		void setMode(Mode mode);
-		void setScript(UpdateScript* script);
-		void setWaitPid(PLATFORM_PID pid);
-		void setForceElevated(bool elevated);
-		void setAutoClose(bool autoClose);
-		void setDryRun(bool dryRun);
-		void setFinishCmd(const std::string& cmd);
-		void setFinishDir(const std::string& dir);
+	void run() throw ();
 
-		void setObserver(UpdateObserver* observer);
+	void restartMainApp();
 
-		void run() throw ();
+private:
+	void cleanup();
+	void revert();
+	void removeBackups();
+	bool checkAccess();
 
-		void restartMainApp();
+	void installFiles();
+	void uninstallFiles();
+	void installFile(const UpdateScriptFile& file);
+	void backupFile(const std::string& path);
+	void postInstallUpdate();
 
-	private:
-		void cleanup();
-		void revert();
-		void removeBackups();
-		bool checkAccess();
+	std::list<std::string> updaterArgs() const;
+	std::string friendlyErrorForError(const FileUtils::IOException& ex) const;
 
-		void installFiles();
-		void uninstallFiles();
-		void installFile(const UpdateScriptFile& file);
-		void backupFile(const std::string& path);
-		void reportError(const std::string& error);
-		void postInstallUpdate();
-
-		std::list<std::string> updaterArgs() const;
-		std::string friendlyErrorForError(const FileUtils::IOException& ex) const;
-
-		Mode m_mode = Setup;
-		std::string m_installDir;
-		std::string m_packageDir;
-		std::string m_backupDir;
-		std::string m_finishCmd;
-		std::string m_finishDir;
-		PLATFORM_PID m_waitPid = 0;
-		UpdateScript* m_script = nullptr;
-		UpdateObserver* m_observer = nullptr;
-		std::map<std::string,std::string> m_backups;
-		bool m_forceElevated = false;
-		bool m_autoClose = false;
-		bool m_dryRun = false;
+	std::string m_installDir;
+	std::string m_packageDir;
+	std::string m_backupDir;
+	std::string m_finishCmd;
+	std::string m_finishDir;
+	PLATFORM_PID m_waitPid = 0;
+	UpdateScript* m_script = nullptr;
+	std::map<std::string,std::string> m_backups;
+	bool m_dryRun = false;
 };

@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "ProcessUtils.h"
 #include "UpdateObserver.h"
+#include "StringUtils.h"
 
 void UpdateInstaller::setWaitPid(PLATFORM_PID pid)
 {
@@ -26,19 +27,9 @@ void UpdateInstaller::setBackupDir(const std::string& path)
 	m_backupDir = path;
 }
 
-void UpdateInstaller::setMode(Mode mode)
-{
-	m_mode = mode;
-}
-
 void UpdateInstaller::setScript(UpdateScript* script)
 {
 	m_script = script;
-}
-
-void UpdateInstaller::setForceElevated(bool elevated)
-{
-	m_forceElevated = elevated;
 }
 
 void UpdateInstaller::setFinishCmd(const std::string& cmd)
@@ -60,10 +51,6 @@ std::list<std::string> UpdateInstaller::updaterArgs() const
 	args.push_back(m_packageDir);
 	args.push_back("--script");
 	args.push_back(m_script->path());
-	if (m_autoClose)
-	{
-		args.push_back("--auto-close");
-	}
 	if (m_dryRun)
 	{
 		args.push_back("--dry-run");
@@ -74,15 +61,6 @@ std::list<std::string> UpdateInstaller::updaterArgs() const
 		args.push_back(m_finishDir);
 	}
 	return args;
-}
-
-void UpdateInstaller::reportError(const std::string& error)
-{
-	if (m_observer)
-	{
-		m_observer->updateError(error);
-		m_observer->updateFinished();
-	}
 }
 
 std::string UpdateInstaller::friendlyErrorForError(const FileUtils::IOException& exception) const
@@ -115,12 +93,12 @@ void UpdateInstaller::run() throw ()
 {
 	if (!m_script || !m_script->isValid())
 	{
-		reportError("Unable to read update script");
+		LOG(Error, "Unable to read update script");
 		return;
 	}
 	if (m_installDir.empty())
 	{
-		reportError("No installation directory specified");
+		LOG(Error, "No installation directory specified");
 		return;
 	}
 
@@ -131,124 +109,58 @@ void UpdateInstaller::run() throw ()
 	}
 	catch (const FileUtils::IOException&)
 	{
-		LOG(Error,"error reading process path with mode " + intToStr(m_mode));
-		reportError("Unable to determine path of updater");
+		LOG(Error,"error reading process path with mode");
 		return;
 	}
 
-	if (m_mode == Setup)
+	if (m_waitPid != 0)
 	{
-		if (m_waitPid != 0)
-		{
-			LOG(Info,"Waiting for main app process to finish");
-			ProcessUtils::waitForProcess(m_waitPid);
-		}
-
-		std::list<std::string> args = updaterArgs();
-		args.push_back("--mode");
-		args.push_back("main");
-		args.push_back("--wait");
-		args.push_back(intToStr(ProcessUtils::currentProcessId()));
-
-		int installStatus = 0;
-		if (m_forceElevated || !checkAccess())
-		{
-			LOG(Info,"Insufficient rights to install app to " + m_installDir + " requesting elevation");
-
-			// start a copy of the updater with admin rights
-			installStatus = ProcessUtils::runElevated(updaterPath,args,AppInfo::name());
-		}
-		else
-		{
-			LOG(Info,"Sufficient rights to install app - restarting with same permissions");
-			installStatus = ProcessUtils::runSync(updaterPath,args);
-		}
-
-		if (installStatus == 0)
-		{
-			LOG(Info,"Update install completed");
-		}
-		else
-		{
-			LOG(Error,"Update install failed with status " + intToStr(installStatus));
-		}
-
-		// restart the main application - this is currently done
-		// regardless of whether the installation succeeds or not
-		restartMainApp();
-
-		// clean up files created by the updater
-		cleanup();
+		LOG(Info,"Waiting for main app process to finish");
+		ProcessUtils::waitForProcess(m_waitPid);
 	}
-	else if (m_mode == Main)
+
+	std::list<std::string> args = updaterArgs();
+	args.push_back("--mode");
+	args.push_back("main");
+	args.push_back("--wait");
+	args.push_back(intToStr(ProcessUtils::currentProcessId()));
+
+	int installStatus = 0;
+	if (!checkAccess())
 	{
-		LOG(Info,"Starting update installation");
+		LOG(Info,"Insufficient rights to install app to " + m_installDir + " requesting elevation");
 
-		// the detailed error string returned by the OS
-		std::string error;
-		// the message to present to the user.  This may be the same
-		// as 'error' or may be different if a more helpful suggestion
-		// can be made for a particular problem
-		std::string friendlyError;
-
-		try
-		{
-			LOG(Info,"Installing new and updated files");
-			installFiles();
-
-			LOG(Info,"Uninstalling removed files");
-			uninstallFiles();
-
-			LOG(Info,"Removing backups");
-			removeBackups();
-
-			postInstallUpdate();
-		}
-		catch (const FileUtils::IOException& exception)
-		{
-			error = exception.what();
-			friendlyError = friendlyErrorForError(exception);
-		}
-		catch (const std::string& genericError)
-		{
-			error = genericError;
-		}
-
-		if (!error.empty())
-		{
-			LOG(Error,std::string("Error installing update ") + error);
-
-			try
-			{
-				revert();
-			}
-			catch (const FileUtils::IOException& exception)
-			{
-				LOG(Error,"Error reverting partial update " + std::string(exception.what()));
-			}
-
-			if (m_observer)
-			{
-				if (friendlyError.empty())
-				{
-					friendlyError = error;
-				}
-				m_observer->updateError(friendlyError);
-			}
-		}
-
-		if (m_observer)
-		{
-			m_observer->updateFinished();
-		}
+		// start a copy of the updater with admin rights
+		installStatus = ProcessUtils::runElevated(updaterPath,args,AppInfo::name());
 	}
+	else
+	{
+		LOG(Info,"Sufficient rights to install app - restarting with same permissions");
+		installStatus = ProcessUtils::runSync(updaterPath,args);
+	}
+
+	if (installStatus == 0)
+	{
+		LOG(Info,"Update install completed");
+	}
+	else
+	{
+		LOG(Error,"Update install failed with status " + intToStr(installStatus));
+	}
+
+	// restart the main application - this is currently done
+	// regardless of whether the installation succeeds or not
+	restartMainApp();
+
+	// clean up files created by the updater
+	cleanup();
 }
 
 void UpdateInstaller::cleanup()
 {
 	try
 	{
-		FileUtils::rmdirRecursive(m_packageDir.c_str());
+		FileUtils::removeDir(m_packageDir.c_str());
 	}
 	catch (const FileUtils::IOException& ex)
 	{
@@ -281,7 +193,7 @@ void UpdateInstaller::installFile(const UpdateScriptFile& file)
 {
 	std::string sourceFile = file.source;
 	std::string destPath = file.dest;
-	std::string absDestPath = FileUtils::makeAbsolute(destPath.c_str(), m_installDir.c_str());
+	std::string absDestPath = FileUtils::makeAbsolute(destPath.c_str(), m_installDir.c_str()).toStdString();
 
 	LOG(Info,"Installing file " + sourceFile + " to " + absDestPath);
 
@@ -289,7 +201,7 @@ void UpdateInstaller::installFile(const UpdateScriptFile& file)
 	backupFile(absDestPath);
 
 	// create the target directory if it does not exist
-	std::string destDir = FileUtils::dirname(absDestPath.c_str());
+	std::string destDir = FileUtils::dirname(absDestPath.c_str()).toStdString();
 	if (!FileUtils::fileExists(destDir.c_str()))
 	{
 		LOG(Info,"Destination path missing. Creating " + destDir);
@@ -321,12 +233,6 @@ void UpdateInstaller::installFiles()
 	{
 		installFile(*iter);
 		++filesInstalled;
-		if (m_observer)
-		{
-			int toInstallCount = static_cast<int>(m_script->filesToInstall().size());
-			double percentage = ((1.0 * filesInstalled) / toInstallCount) * 100.0;
-			m_observer->updateProgress(static_cast<int>(percentage));
-		}
 	}
 }
 
@@ -336,7 +242,7 @@ void UpdateInstaller::uninstallFiles()
 	std::vector<std::string>::const_iterator iter = m_script->filesToUninstall().begin();
 	for (;iter != m_script->filesToUninstall().end();iter++)
 	{
-		std::string path = FileUtils::makeAbsolute(iter->c_str(), m_installDir.c_str());
+		std::string path = FileUtils::makeAbsolute(iter->c_str(), m_installDir.c_str()).toStdString();
 		if (FileUtils::fileExists(path.c_str()))
 		{
 			LOG(Info,"Uninstalling " + path);
@@ -416,11 +322,6 @@ bool UpdateInstaller::checkAccess()
 	}
 }
 
-void UpdateInstaller::setObserver(UpdateObserver* observer)
-{
-	m_observer = observer;
-}
-
 void UpdateInstaller::restartMainApp()
 {
 	try
@@ -466,11 +367,6 @@ void UpdateInstaller::postInstallUpdate()
 		FileUtils::touch(m_installDir.c_str());
 	}
 #endif
-}
-
-void UpdateInstaller::setAutoClose(bool autoClose)
-{
-	m_autoClose = autoClose;
 }
 
 void UpdateInstaller::setDryRun(bool dryRun)

@@ -62,4 +62,3 @@ void Log::write(Type type, const char* text)
 	}
 	m_mutex.unlock();
 }
-

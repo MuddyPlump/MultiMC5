@@ -2,13 +2,12 @@
 add_subdirectory(tests)
 
 find_package(Threads REQUIRED)
+find_package(Qt5 COMPONENTS Core)
 include(GenerateCppResourceFile)
 
 set(UPDATER_SOURCES
  AppInfo.cpp
  AppInfo.h
- DirIterator.cpp
- DirIterator.h
  FileUtils.cpp
  FileUtils.h
  Log.cpp
@@ -69,8 +68,9 @@ if(UNIX)
 endif()
 
 add_library(updatershared STATIC ${UPDATER_SOURCES})
+qt5_use_modules(updatershared Core)
 
-target_link_libraries(updatershared anyoption tinyxml)
+target_link_libraries(updatershared tinyxml)
 
 if(UNIX)
 	if(APPLE)
@@ -90,6 +90,7 @@ endif()
 add_executable(updater ${EXE_FLAGS} main.cpp)
 
 target_link_libraries(updater updatershared)
+qt5_use_modules(updater Core)
 
 
 #### Updater Executable ####

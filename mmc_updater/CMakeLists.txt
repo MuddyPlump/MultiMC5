@@ -47,6 +47,5 @@ if(APPLE)
 endif()
 
 add_subdirectory(src)
-add_subdirectory(depends/AnyOption)
 add_subdirectory(depends/tinyxml)
 

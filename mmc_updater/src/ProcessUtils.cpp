@@ -131,7 +131,7 @@ int ProcessUtils::runElevatedLinux(const std::string& executable,
 	std::string task(_task);
 	if (task.empty())
 	{
-		task = FileUtils::fileName(executable.c_str());
+		task = FileUtils::fileName(executable.c_str()).toStdString();
 	}
 
 	// try available graphical sudo instances until we find one that works.
@@ -479,7 +479,7 @@ int ProcessUtils::runWindows(const std::string& _executable,
 std::string ProcessUtils::currentProcessPath()
 {
 #ifdef PLATFORM_LINUX
-	std::string path = FileUtils::canonicalPath("/proc/self/exe");
+	std::string path = FileUtils::canonicalPath("/proc/self/exe").toStdString();
 	LOG(Info,"Current process path " + path);
 	return path;
 #elif defined(PLATFORM_MAC)

@@ -152,7 +152,8 @@ int main(int argc, char** argv)
 	installer.setDryRun(options.dryRun);
 
 	LOG(Info, "Showing updater UI");
-	std::auto_ptr<UpdateDialog> dialog(createUpdateDialog());
+	std::unique_ptr<UpdateDialog> dialog(createUpdateDialog());
+	dialog->setAutoClose(true);
 	dialog->init(argc, argv);
 	installer.setObserver(dialog.get());
 	std::thread updaterThread(runUpdaterThread, &installer);

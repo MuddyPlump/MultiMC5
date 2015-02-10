@@ -11,9 +11,9 @@ void TestParseScript::testParse()
 
 	TEST_COMPARE(script.isValid(), true);
 	TEST_COMPARE(script.filesToInstall(),
-				 std::vector<UpdateScriptFile>({UpdateScriptFile{"SourceA", "DestA", 755},
-												UpdateScriptFile{"SourceB", "DestB", 644},
-												UpdateScriptFile{"SourceC", "DestC", 644}}));
+				 std::vector<UpdateScriptFile>({UpdateScriptFile{"SourceA", "DestA", 0755},
+												UpdateScriptFile{"SourceB", "DestB", 0644},
+												UpdateScriptFile{"SourceC", "DestC", 0644}}));
 	TEST_COMPARE(
 		script.filesToUninstall(),
 		std::vector<QString>({"file-to-uninstall.txt", "other-file-to-uninstall.txt"}));

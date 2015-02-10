@@ -175,7 +175,16 @@ QString FileUtils::fileName(const QString &path)
 
 QString FileUtils::dirname(const QString &path)
 {
-	return QDir(path).dirName();
+	const QFileInfo info(path);
+	if (info.isRelative())
+	{
+		const QString ret = QDir::current().relativeFilePath(info.absoluteDir().absolutePath());
+		return ret.isEmpty() ? "." : ret;
+	}
+	else
+	{
+		return info.absoluteDir().absolutePath();
+	}
 }
 
 void FileUtils::touch(const QString &path) throw(IOException)

@@ -14,8 +14,6 @@ set(UPDATER_SOURCES
  Log.h
  ProcessUtils.cpp
  ProcessUtils.h
- StandardDirs.cpp
- StandardDirs.h
  UpdateDialog.cpp
  UpdateInstaller.cpp
  UpdateInstaller.h
@@ -70,8 +68,6 @@ endif()
 add_library(updatershared STATIC ${UPDATER_SOURCES})
 qt5_use_modules(updatershared Core)
 
-target_link_libraries(updatershared tinyxml)
-
 if(UNIX)
 	if(APPLE)
 		find_library(COCOA_LIBRARY Cocoa)
@@ -88,7 +84,6 @@ if(WIN32)
 endif()
 
 add_executable(updater ${EXE_FLAGS} main.cpp)
-
 target_link_libraries(updater updatershared)
 qt5_use_modules(updater Core)
 

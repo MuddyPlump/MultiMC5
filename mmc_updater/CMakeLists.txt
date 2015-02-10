@@ -6,6 +6,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 include_directories(depends)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 if(WIN32)
 	include_directories(depends/win32cpp)
 
@@ -47,5 +49,4 @@ if(APPLE)
 endif()
 
 add_subdirectory(src)
-add_subdirectory(depends/tinyxml)
 

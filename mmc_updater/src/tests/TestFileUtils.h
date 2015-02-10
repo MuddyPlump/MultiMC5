@@ -2,7 +2,6 @@
 
 class TestFileUtils
 {
-	public:
-		void testDirName();
-		void testStandardDirs();
+public:
+	void testDirName();
 };

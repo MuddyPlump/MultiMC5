@@ -2,12 +2,7 @@
 
 #include <QCommandLineParser>
 
-UpdaterOptions::UpdaterOptions()
-: waitPid(0)
-{
-}
-
-void UpdaterOptions::parse(int argc, char** argv)
+void UpdaterOptions::parse(int argc, char **argv)
 {
 	QStringList args;
 	for (int i = 0; i < argc; ++i)

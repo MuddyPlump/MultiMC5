@@ -6,14 +6,78 @@
 
 #include "Log.h"
 
+#ifdef Q_OS_UNIX
+// from <sys/stat.h>
+#ifndef S_IRUSR
+#define __S_IREAD 0400	 /* Read by owner.  */
+#define __S_IWRITE 0200	/* Write by owner.  */
+#define __S_IEXEC 0100	 /* Execute by owner.  */
+#define S_IRUSR __S_IREAD  /* Read by owner.  */
+#define S_IWUSR __S_IWRITE /* Write by owner.  */
+#define S_IXUSR __S_IEXEC  /* Execute by owner.  */
+
+#define S_IRGRP (S_IRUSR >> 3) /* Read by group.  */
+#define S_IWGRP (S_IWUSR >> 3) /* Write by group.  */
+#define S_IXGRP (S_IXUSR >> 3) /* Execute by group.  */
+
+#define S_IROTH (S_IRGRP >> 3) /* Read by others.  */
+#define S_IWOTH (S_IWGRP >> 3) /* Write by others.  */
+#define S_IXOTH (S_IXGRP >> 3) /* Execute by others.  */
+#endif
+static QFile::Permissions unixModeToPermissions(const int mode)
+{
+	QFile::Permissions perms;
+
+	if (mode & S_IRUSR)
+	{
+		perms |= QFile::ReadUser;
+	}
+	if (mode & S_IWUSR)
+	{
+		perms |= QFile::WriteUser;
+	}
+	if (mode & S_IXUSR)
+	{
+		perms |= QFile::ExeUser;
+	}
+
+	if (mode & S_IRGRP)
+	{
+		perms |= QFile::ReadGroup;
+	}
+	if (mode & S_IWGRP)
+	{
+		perms |= QFile::WriteGroup;
+	}
+	if (mode & S_IXGRP)
+	{
+		perms |= QFile::ExeGroup;
+	}
+
+	if (mode & S_IROTH)
+	{
+		perms |= QFile::ReadOther;
+	}
+	if (mode & S_IWOTH)
+	{
+		perms |= QFile::WriteOther;
+	}
+	if (mode & S_IXOTH)
+	{
+		perms |= QFile::ExeOther;
+	}
+	return perms;
+}
+#endif
+
 FileUtils::IOException::IOException(const QString &error)
 {
-	init(errno,error);
+	init(errno, error);
 }
 
 FileUtils::IOException::IOException(int errorCode, const QString &error)
 {
-	init(errorCode,error);
+	init(errorCode, error);
 }
 
 void FileUtils::IOException::init(int errorCode, const QString &error)
@@ -35,7 +99,7 @@ void FileUtils::IOException::init(int errorCode, const QString &error)
 #endif
 }
 
-FileUtils::IOException::~IOException() throw ()
+FileUtils::IOException::~IOException() throw()
 {
 }
 
@@ -44,46 +108,50 @@ FileUtils::IOException::Type FileUtils::IOException::type() const
 #ifdef Q_OS_LINUX
 	switch (m_errorCode)
 	{
-		case 0:
-			return NoError;
-		case EROFS:
-			return ReadOnlyFileSystem;
-		case ENOSPC:
-			return DiskFull;
-		default:
-			return Unknown;
+	case 0:
+		return NoError;
+	case EROFS:
+		return ReadOnlyFileSystem;
+	case ENOSPC:
+		return DiskFull;
+	default:
+		return Unknown;
 	}
 #else
 	return Unknown;
 #endif
 }
 
-bool FileUtils::fileExists(const QString &path) throw (IOException)
+bool FileUtils::fileExists(const QString &path) throw(IOException)
 {
 	return QFile::exists(path);
 }
 
-int FileUtils::fileMode(const QString &path) throw (IOException)
+int FileUtils::fileMode(const QString &path) throw(IOException)
 {
 	return QFile::permissions(path);
 }
 
-void FileUtils::chmod(const QString &path, int mode) throw (IOException)
+void FileUtils::chmod(const QString &path, int mode) throw(IOException)
 {
 #ifdef Q_OS_LINUX
-	if (!QFile::setPermissions(path, (QFile::Permission)mode))
+	if (!QFile::setPermissions(path, unixModeToPermissions(mode)))
 	{
-		throw IOException("Failed to set permissions on " + path + " to " + QString::number(mode));
+		throw IOException("Failed to set permissions on " + path + " to " +
+						  QString::number(mode));
 	}
 #endif
 }
 
-void FileUtils::moveFile(const QString &src, const QString &dest) throw (IOException)
+void FileUtils::moveFile(const QString &src, const QString &dest) throw(IOException)
 {
-	QFile::rename(src, dest);
+	if (!QFile::rename(src, dest))
+	{
+		throw IOException("Unable to move " + src + " to " + dest);
+	}
 }
 
-void FileUtils::mkpath(const QString &dir) throw (IOException)
+void FileUtils::mkpath(const QString &dir) throw(IOException)
 {
 	if (!QDir().mkpath(dir))
 	{
@@ -91,9 +159,10 @@ void FileUtils::mkpath(const QString &dir) throw (IOException)
 	}
 }
 
-void FileUtils::removeFile(const QString &src) throw (IOException)
+void FileUtils::removeFile(const QString &src) throw(IOException)
 {
-	if (QFile::remove(src))
+	QFile file(src);
+	if (!file.remove())
 	{
 		throw IOException("Unable to remove file " + src);
 	}
@@ -109,13 +178,12 @@ QString FileUtils::dirname(const QString &path)
 	return QDir(path).dirName();
 }
 
-void FileUtils::touch(const QString &path) throw (IOException)
+void FileUtils::touch(const QString &path) throw(IOException)
 {
 	QFile file(path);
 	if (!file.open(QFile::WriteOnly | QFile::Append))
 	{
-		throw IOException("Couldn't open a file for writing: " +
-						  file.errorString());
+		throw IOException("Couldn't open a file for writing: " + file.errorString());
 	}
 	file.close();
 }
@@ -130,7 +198,7 @@ QString FileUtils::tempPath()
 	return QDir::tempPath();
 }
 
-QString FileUtils::readFile(const QString &path) throw (IOException)
+QString FileUtils::readFile(const QString &path) throw(IOException)
 {
 	QFile file(path);
 	if (!file.open(QFile::ReadOnly))
@@ -140,7 +208,7 @@ QString FileUtils::readFile(const QString &path) throw (IOException)
 	return QString::fromLatin1(file.readAll());
 }
 
-void FileUtils::copyFile(const QString &src, const QString &dest) throw (IOException)
+void FileUtils::copyFile(const QString &src, const QString &dest) throw(IOException)
 {
 	if (!QFile::copy(src, dest))
 	{
@@ -151,10 +219,10 @@ void FileUtils::copyFile(const QString &src, const QString &dest) throw (IOExcep
 
 QString FileUtils::makeAbsolute(const QString &path, const QString &basePath)
 {
-	return QDir(path).absoluteFilePath(basePath);
+	return QDir(basePath).absoluteFilePath(path);
 }
 
-void FileUtils::removeDir(const QString &path) throw (IOException)
+void FileUtils::removeDir(const QString &path) throw(IOException)
 {
 	if (!QDir(path).removeRecursively())
 	{

@@ -2,8 +2,6 @@ project(MultiMC-Logic)
 
 SET(LOGIC_SOURCES
 	# LOGIC - Base classes and infrastructure
-	BaseInstaller.h
-	BaseInstaller.cpp
 	BaseVersionList.h
 	BaseVersionList.cpp
 	InstanceList.h
@@ -138,6 +136,10 @@ SET(LOGIC_SOURCES
 	minecraft/Mod.cpp
 	minecraft/ModList.h
 	minecraft/ModList.cpp
+	minecraft/LegacyForge.h
+	minecraft/LegacyForge.cpp
+	minecraft/AssetsUtils.h
+	minecraft/AssetsUtils.cpp
 
 	# A Recursive file system watcher
 	RecursiveFileSystemWatcher.h
@@ -187,31 +189,6 @@ SET(LOGIC_SOURCES
 	java/JavaCheckerJob.h
 	java/JavaCheckerJob.cpp
 
-	# Assets
-	minecraft/AssetsUtils.h
-	minecraft/AssetsUtils.cpp
-
-	# Forge and all things forge related
-	forge/ForgeVersion.h
-	forge/ForgeVersion.cpp
-	forge/ForgeVersionList.h
-	forge/ForgeVersionList.cpp
-	forge/ForgeMirror.h
-	forge/ForgeMirrors.h
-	forge/ForgeMirrors.cpp
-	forge/ForgeXzDownload.h
-	forge/ForgeXzDownload.cpp
-	forge/LegacyForge.h
-	forge/LegacyForge.cpp
-	forge/ForgeInstaller.h
-	forge/ForgeInstaller.cpp
-
-	# Liteloader and related things
-	liteloader/LiteLoaderInstaller.h
-	liteloader/LiteLoaderInstaller.cpp
-	liteloader/LiteLoaderVersionList.h
-	liteloader/LiteLoaderVersionList.cpp
-
 	# Translations
 	trans/TranslationDownloader.h
 	trans/TranslationDownloader.cpp
@@ -222,5 +199,5 @@ SET(LOGIC_SOURCES
 add_library(MultiMC_logic STATIC ${LOGIC_SOURCES})
 
 # Link
-target_link_libraries(MultiMC_logic xz-embedded unpack200 quazip libUtil LogicalGui ${MultiMC_LINK_ADDITIONAL_LIBS})
+target_link_libraries(MultiMC_logic quazip libUtil LogicalGui ${MultiMC_LINK_ADDITIONAL_LIBS})
 qt5_use_modules(MultiMC_logic Core Widgets Network Xml Concurrent ${MultiMC_QT_ADDITIONAL_MODULES})

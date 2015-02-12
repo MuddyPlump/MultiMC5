@@ -71,7 +71,8 @@ NewInstanceDialog::NewInstanceDialog(QWidget *parent)
 
 	ui->modpackEdit->setValidator(new UrlValidator(ui->modpackEdit));
 	connect(ui->modpackEdit, &QLineEdit::textChanged, this, &NewInstanceDialog::updateDialogState);
-	connect(ui->modpackBox, &QCheckBox::clicked, this, &NewInstanceDialog::updateDialogState);
+	connect(ui->modpackBox, &QRadioButton::clicked, this, &NewInstanceDialog::updateDialogState);
+	connect(ui->versionBox, &QRadioButton::clicked, this, &NewInstanceDialog::updateDialogState);
 
 	auto groups = MMC->instances()->getGroups().toSet();
 	auto groupList = QStringList(groups.toList());

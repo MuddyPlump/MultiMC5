@@ -215,13 +215,17 @@ set_directory_properties(PROPERTIES EP_BASE External)
 
 # Add quazip
 add_definitions(-DQUAZIP_STATIC)
+set(QUAZIP_VERSION "0.7.1")
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/quazip-${QUAZIP_VERSION}.tar.gz)
+	file(DOWNLOAD http://downloads.sourceforge.net/project/quazip/quazip/${QUAZIP_VERSION}/quazip-${QUAZIP_VERSION}.tar.gz ${CMAKE_BINARY_DIR}/quazip-${QUAZIP_VERSION}.tar.gz)
+endif()
 ExternalProject_Add(QuaZIP
-	SVN_REPOSITORY svn://svn.code.sf.net/p/quazip/code/trunk/quazip
-	SVN_REVISION -r257 # Change here to update
-	PATCH_COMMAND svn patch ${CMAKE_SOURCE_DIR}/quazip.patch
+	SOURCE_DIR <BINARY_DIR>/../Source/quazip-${QUAZIP_VERSION}
+	DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>/.. ${CMAKE_COMMAND} -E tar xzf ${CMAKE_BINARY_DIR}/quazip-${QUAZIP_VERSION}.tar.gz
+	PATCH_COMMAND patch -p0 -i ${CMAKE_SOURCE_DIR}/quazip.patch
 	CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG} -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 )
-include_directories("${CMAKE_BINARY_DIR}/External/Install/QuaZIP/include/quazip5")
+include_directories("${CMAKE_BINARY_DIR}/External/Install/QuaZIP/include/quazip")
 set(QUAZIP_LIBRARIES -L"${CMAKE_BINARY_DIR}/External/Install/QuaZIP/lib" quazip)
 
 # Add the java launcher and checker
